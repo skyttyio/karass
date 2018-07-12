@@ -8,7 +8,7 @@ import java.util.function.Function;
 /** Log-compacted event bus. */
 public class Bus<T> {
 
-  public static class Event<T> {
+  protected static class Event<T> {
     public String key;
     public T value;
 
@@ -126,5 +126,23 @@ public class Bus<T> {
     while (!closed) {
       i = process(e -> f.accept(e.value), i);
     }
+  }
+
+  public Bus<T> mapKeys(Function<String, String> f) {
+    Bus<T> child = new Bus();
+    thread(e -> child.emit(f.apply(e.key), e.value)).start();
+    return child;
+  }
+
+  public Bus<T> filterKeys(Function<String, Boolean> f) {
+    Bus<T> child = new Bus();
+    thread(
+            e -> {
+              if (f.apply(e.key)) {
+                child.emit(e.key, e.value);
+              }
+            })
+        .start();
+    return child;
   }
 }

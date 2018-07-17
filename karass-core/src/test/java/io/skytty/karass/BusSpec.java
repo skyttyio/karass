@@ -58,4 +58,21 @@ public class BusSpec {
     b.process(e -> count.inc(), 0);
     assertThat(count.get(), is(capacity));
   }
+
+  @Test(timeout = 1000)
+  public void complexFlow() {
+    Bus<Integer> a = new Bus();
+    Bus<String> b = a.filter(i -> i % 10 == 0).fmap(i -> Integer.toString(i));
+    for (int i = 0; i < 100; i++) {
+      String s = Integer.toString(i);
+      a.emit(s, i);
+    }
+    a.close();
+    final Counter count1 = new Counter();
+    a.foreach(e -> count1.inc());
+    assertThat(count1.get(), is(100));
+    final Counter count2 = new Counter();
+    b.foreach(e -> count2.inc());
+    assertThat(count2.get(), is(10));
+  }
 }

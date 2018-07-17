@@ -2,6 +2,7 @@ package io.skytty.karass;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -18,14 +19,14 @@ public class Bus<T> {
     }
   }
 
-  int count = 0;
-  boolean closed = false;
-  Map<Integer, Event<T>> events = new HashMap();
-  Map<String, Integer> offsets = new HashMap();
+  int count = 0; // might need atomic int
+  int closedAt = -1;
+  Map<Integer, Event<T>> events = new HashMap<>();
+  Map<String, Integer> offsets = new HashMap<>();
 
   public synchronized int emit(String key, T value) {
     Event<T> event = new Event(key, value);
-    if (closed) {
+    if (closed()) {
       throw new IllegalStateException("Bus is closed.");
     }
     int offset = count;
@@ -57,11 +58,16 @@ public class Bus<T> {
   }
 
   public synchronized void close() {
-    closed = true;
+    closedAt = count;
+    notifyAll();
+  }
+
+  public boolean closed() {
+    return closedAt != -1;
   }
 
   // apply f to all events since given offset. Will block until new events arrive.
-  public int process(Consumer<Event<T>> f, int since) {
+  protected int process(Consumer<Event<T>> f, int since) {
     waitForOffset(since);
     int i = since;
     for (; i < count; i++) {
@@ -73,11 +79,21 @@ public class Bus<T> {
     return i;
   }
 
-  public void waitForOffset(int offset) {
-    while (count < offset && !closed) {
+  protected boolean mightReachOffset(int offset) {
+    return closedAt == -1 || closedAt > offset;
+  }
+
+  protected boolean reachedOffset(int offset) {
+    return count - 1 >= offset;
+  }
+
+  protected void waitForOffset(int offset) {
+    while (!reachedOffset(offset) && mightReachOffset(offset)) {
       try {
         synchronized (this) {
+          System.out.println(this.toString() + " waiting for " + Integer.toString(offset) + "...");
           wait();
+          System.out.println(this.toString() + "woken up at " + Integer.toString(count) + "...");
         }
       } catch (InterruptedException e) {
         return;
@@ -85,64 +101,58 @@ public class Bus<T> {
     }
   }
 
-  // create a thread to process every event
-  public Thread thread(Consumer<Event<T>> f) {
-    return new Thread(runnable(f));
-  }
-
-  // create a runnable to process every event
-  public Runnable runnable(Consumer<Event<T>> f) {
-    return new Runnable() {
-      @Override
-      public void run() {
-        int i = 0;
-        while (!closed) {
-          i = process(f, i);
-        }
-      }
-    };
-  }
-
   public <U> Bus<U> fmap(Function<T, U> f) {
     Bus<U> child = new Bus();
-    thread(e -> child.emit(e.key, f.apply(e.value))).start();
+    foreachEventAsync(e -> child.emit(e.key, f.apply(e.value))).thenRun(() -> child.close());
     return child;
   }
 
   public Bus<T> filter(Function<T, Boolean> f) {
     Bus<T> child = new Bus();
-    thread(
+    foreachEventAsync(
             e -> {
               if (f.apply(e.value)) {
                 child.emit(e.key, e.value);
               }
             })
-        .start();
+        .thenRun(() -> child.close());
     return child;
   }
 
-  public void foreach(Consumer<T> f) {
+  protected void foreachEvent(Consumer<Event<T>> f) {
     int i = 0;
-    while (!closed) {
-      i = process(e -> f.accept(e.value), i);
+    while (mightReachOffset(i)) {
+      i = process(e -> f.accept(e), i);
     }
+  }
+
+  public void foreach(Consumer<T> f) {
+    foreachEvent(e -> f.accept(e.value));
+  }
+
+  protected CompletableFuture<Void> foreachEventAsync(Consumer<Event<T>> f) {
+    return CompletableFuture.runAsync(() -> foreachEvent(f));
+  }
+
+  public CompletableFuture<Void> foreachAsync(Consumer<T> f) {
+    return CompletableFuture.runAsync(() -> foreach(f));
   }
 
   public Bus<T> mapKeys(Function<String, String> f) {
     Bus<T> child = new Bus();
-    thread(e -> child.emit(f.apply(e.key), e.value)).start();
+    foreachEventAsync(e -> child.emit(f.apply(e.key), e.value)).thenRun(() -> child.close());
     return child;
   }
 
   public Bus<T> filterKeys(Function<String, Boolean> f) {
     Bus<T> child = new Bus();
-    thread(
+    foreachEventAsync(
             e -> {
               if (f.apply(e.key)) {
                 child.emit(e.key, e.value);
               }
             })
-        .start();
+        .thenRun(() -> child.close());
     return child;
   }
 }

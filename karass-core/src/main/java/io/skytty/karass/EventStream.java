@@ -1,5 +1,6 @@
 package io.skytty.karass;
 
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -66,7 +67,11 @@ public abstract class EventStream<T> {
     return child;
   }
 
-  public void drainTo(Sink<T> sink) {
-    foreachEvent(e -> sink.send(e.key, e.value));
+  public void drainTo(Sink<T> sink) throws IOException {
+    try {
+      foreachEvent(e -> sink.sendUnchecked(e.key, e.value));
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
   }
 }

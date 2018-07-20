@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import org.junit.Test;
@@ -12,7 +13,7 @@ import org.junit.Test;
 public class SourceSinkSpec {
 
   @Test
-  public void testSourceSink() throws UnsupportedEncodingException {
+  public void testSourceSink() throws UnsupportedEncodingException, IOException {
     String input =
         "      strlen is the thing with pointers -  \n"
             + "that iterates the chars -            \n"

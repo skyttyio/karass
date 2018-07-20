@@ -21,7 +21,7 @@ public class Sinks {
     }
   }
 
-  public static class IOSink implements Sink<String> {
+  public static class IOSink extends Sink<String> {
 
     PrintStream out;
 

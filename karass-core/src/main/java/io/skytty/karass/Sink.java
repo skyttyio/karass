@@ -1,10 +1,21 @@
 package io.skytty.karass;
 
-public interface Sink<T> {
+import java.io.IOException;
+import java.io.UncheckedIOException;
 
-  void send(String key, T value);
+public abstract class Sink<T> {
 
-  default void shutdown() {}
+  abstract void send(String key, T value) throws IOException;
 
-  default void init() {}
+  void shutdown() {}
+
+  void init() {}
+
+  void sendUnchecked(String key, T value) {
+    try {
+      send(key, value);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
 }

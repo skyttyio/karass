@@ -16,6 +16,7 @@ include 'api'
 include 'services:webservice'
 */
 
-rootProject.name = 'karass-java'
+rootProject.name = 'karass'
 
 include 'karass-core'
+include 'karass-azure'

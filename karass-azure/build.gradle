@@ -1,25 +1,32 @@
 
-
 plugins {
-  id 'com.diffplug.gradle.spotless' version '3.13.0'
+  id 'com.jfrog.bintray' version '1.8.4'
 }
 
 apply plugin: 'java'
+apply plugin: 'maven'
 
-spotless {
-  java {
-    googleJavaFormat()
-    removeUnusedImports()
-  }
-}
-
-repositories {
-  jcenter()
-}
- 
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7.13'
     compile 'com.microsoft.azure:azure-eventhubs:1.0.2'
     testCompile 'junit:junit:4.12'
+}
+
+bintray {
+  user = System.getenv('BINTRAY_USER')
+  key = System.getenv('BINTRAY_ACCESS_KEY')
+  configurations = ['archives']
+  pkg {
+    repo = 'karass'
+    name = 'karass-azure'
+    userOrg = 'skytty'
+    licenses = ['Apache-2.0']
+    vcsUrl = 'https://github.com/skyttyio/karass'
+    version {
+      name = findProperty('releaseVersion')
+      desc = 'early preview'
+      released = new Date()
+    }
+  }
 }
 

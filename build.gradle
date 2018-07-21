@@ -1,8 +1,21 @@
 
-
 buildscript {
   repositories {
     jcenter()
   }
 }
+
+plugins {
+  id 'com.diffplug.gradle.spotless' version '3.13.0'
+}
+  
+subprojects {
+  repositories {
+    jcenter()
+  }
  
+  apply plugin: 'com.diffplug.gradle.spotless'
+  apply from: "$rootDir/gradle/spotless.gradle"
+}
+
+

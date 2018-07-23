@@ -75,4 +75,20 @@ public class BusSpec {
     b.foreach(e -> count2.inc());
     assertThat(count2.get(), is(10));
   }
+
+  @Test
+  public void joinReduce() {
+    Bus<Integer> a = new Bus<>();
+    Bus<Integer> b = new Bus<>();
+    for (int i = 0; i < 10; i++) {
+      String s = Integer.toString(i);
+      a.emit(s, i);
+      b.emit(s, i * 2);
+    }
+    a.close();
+    b.close();
+    Bus<Integer> c = a.joinWith(b).fmap(x -> x.left + x.right);
+    int sum = c.reduce(0, (agg, x) -> agg + x);
+    assertThat(sum, is(135));
+  }
 }

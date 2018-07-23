@@ -1,8 +1,11 @@
 package io.skytty.karass;
 
+import io.skytty.karass.util.Aggregator;
+import io.skytty.karass.util.Pair;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -77,5 +80,24 @@ public abstract class EventStream<T> {
             throw new UncheckedIOException(e);
           }
         });
+  }
+
+  public <U> Bus<Pair<T, U>> joinWith(Bus<U> bus) {
+    Bus<Pair<T, U>> child = new Bus<>();
+    foreachEventAsync(
+            e -> {
+              U u = bus.get(e.key);
+              if (u != null) {
+                child.emit(e.key, new Pair<>(e.value, u));
+              }
+            })
+        .thenRun(() -> child.close());
+    return child;
+  }
+
+  public <U> U reduce(U u, BiFunction<U, T, U> f) {
+    Aggregator<U> agg = new Aggregator<>(u);
+    foreachEvent(e -> agg.apply(x -> f.apply(x, e.value)));
+    return agg.get();
   }
 }

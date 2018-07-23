@@ -21,7 +21,7 @@ public class BusSpec {
 
   @Test
   public void availableEvents() {
-    Bus<String> b = new Bus();
+    Bus<String> b = new Bus<>();
     b.emit("key1", "ryanne");
     b.emit("key2", "sarah");
     final Counter count = new Counter();
@@ -31,7 +31,7 @@ public class BusSpec {
 
   @Test
   public void logCompaction() {
-    Bus<String> b = new Bus();
+    Bus<String> b = new Bus<>();
     b.emit("key", "ryanne");
     b.emit("key", "sarah");
     final Counter count = new Counter();
@@ -41,7 +41,7 @@ public class BusSpec {
 
   @Test
   public void getKey() {
-    Bus<String> b = new Bus();
+    Bus<String> b = new Bus<>();
     b.emit("key", "foo");
     assertThat(b.get("key"), is("foo"));
   }
@@ -49,7 +49,7 @@ public class BusSpec {
   @Test
   public void boundedBus() {
     int capacity = 3;
-    Bus<Integer> b = new BoundedBus(capacity);
+    Bus<Integer> b = new BoundedBus<>(capacity);
     for (int i = 0; i < 100; i++) {
       String s = Integer.toString(i);
       b.emit(s, i);
@@ -61,7 +61,7 @@ public class BusSpec {
 
   @Test(timeout = 1000)
   public void complexFlow() {
-    Bus<Integer> a = new Bus();
+    Bus<Integer> a = new Bus<>();
     Bus<String> b = a.filter(i -> i % 10 == 0).fmap(i -> Integer.toString(i));
     for (int i = 0; i < 100; i++) {
       String s = Integer.toString(i);

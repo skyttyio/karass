@@ -1,10 +1,13 @@
 package io.skytty.karass.azure;
 
-import io.skytty.karass.Sink;
-import io.skytty.karass.util.RetryPolicy;
 import com.microsoft.azure.eventhubs.EventData;
 import com.microsoft.azure.eventhubs.EventHubClient;
 import com.microsoft.azure.eventhubs.EventHubException;
+import io.skytty.karass.Sink;
+import io.skytty.karass.util.RetryPolicy;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutorService;
 
 public class AzureEventHubSink extends Sink<ByteBuffer> {
 
@@ -16,25 +19,30 @@ public class AzureEventHubSink extends Sink<ByteBuffer> {
     this.client = client;
   }
 
-  public AzureEventHubSink(String connectionString) {
-    client = EventHubClient.createSync(connectionString);
+  public AzureEventHubSink(String connectionString, ExecutorService executor)
+      throws EventHubException, IOException {
+    client = EventHubClient.createSync(connectionString, executor);
     shouldClose = true;
   }
 
   @Override
   public void shutdown() {
     if (shouldClose) {
-      client.closeSync();
+      try {
+        client.closeSync();
+      } catch (EventHubException e) {
+        // swallow
+      }
     }
   }
 
   @Override
   public void send(String key, ByteBuffer value) throws IOException {
-    Runnable runnable = () => {
-      EventData data = EventData.create(value);
-      client.sendSync(data);
-    };
-    retryPolicy.retry(runnable);
+    retryPolicy.retry(
+        () -> {
+          EventData data = EventData.create(value);
+          client.sendSync(data);
+        });
   }
 
   public void setRetryPolicy(RetryPolicy retryPolicy) {

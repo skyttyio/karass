@@ -13,15 +13,19 @@ public class RetryPolicy {
     }
   }
 
+  public interface RetryableTask {
+    void run() throws Exception;
+  }
+
   public class Retrying {
 
     private int retryCount = -1;
     private int delay = 0;
-    private Runnable runnable;
+    private RetryableTask task;
     private boolean success = false;
 
-    protected Retrying(Runnable runnable) {
-      this.runnable = runnable;
+    protected Retrying(RetryableTask task) {
+      this.task = task;
     }
 
     public boolean shouldRetry() {
@@ -39,7 +43,7 @@ public class RetryPolicy {
         if (delay > 0) {
           Thread.sleep(delay);
         }
-        runnable.run();
+        task.run();
         success = true;
       } catch (Exception e) {
         if (!shouldRetry()) {
@@ -57,8 +61,10 @@ public class RetryPolicy {
     this.backoffMillis = backoffMillis;
   }
 
-  public void retry(Runnable runnable) throws MaxRetriesException {
-    Retrying retrying = this.new Retrying(runnable);
+  public RetryPolicy() {}
+
+  public void retry(RetryableTask task) throws MaxRetriesException {
+    Retrying retrying = this.new Retrying(task);
     while (retrying.shouldRetry()) {
       retrying.tryRun();
     }

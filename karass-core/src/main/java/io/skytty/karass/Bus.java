@@ -13,7 +13,7 @@ public class Bus<T> extends EventStream<T> {
   Map<String, Integer> offsets = new HashMap<>();
 
   public synchronized int emit(String key, T value) {
-    Event<T> event = new Event(key, value);
+    Event<T> event = new Event<>(key, value);
     if (closed()) {
       throw new IllegalStateException("Bus is closed.");
     }

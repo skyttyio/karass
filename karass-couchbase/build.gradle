@@ -9,7 +9,7 @@ apply plugin: 'maven'
 dependencies {
     compile project(':karass-core')
     compile 'org.slf4j:slf4j-api:1.7.13'
-    compile 'com.microsoft.azure:azure-eventhubs:1.0.2'
+    compile 'com.couchbase.client:java-client:2.6.0'
     testCompile 'junit:junit:4.12'
 }
 

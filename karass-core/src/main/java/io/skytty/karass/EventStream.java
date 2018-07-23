@@ -1,6 +1,7 @@
 package io.skytty.karass;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -20,13 +21,13 @@ public abstract class EventStream<T> {
   protected abstract void foreachEvent(Consumer<Event<T>> f);
 
   public <U> Bus<U> fmap(Function<T, U> f) {
-    Bus<U> child = new Bus();
+    Bus<U> child = new Bus<>();
     foreachEventAsync(e -> child.emit(e.key, f.apply(e.value))).thenRun(() -> child.close());
     return child;
   }
 
   public Bus<T> filter(Function<T, Boolean> f) {
-    Bus<T> child = new Bus();
+    Bus<T> child = new Bus<>();
     foreachEventAsync(
             e -> {
               if (f.apply(e.value)) {
@@ -50,13 +51,13 @@ public abstract class EventStream<T> {
   }
 
   public Bus<T> mapKeys(Function<String, String> f) {
-    Bus<T> child = new Bus();
+    Bus<T> child = new Bus<>();
     foreachEventAsync(e -> child.emit(f.apply(e.key), e.value)).thenRun(() -> child.close());
     return child;
   }
 
   public Bus<T> filterKeys(Function<String, Boolean> f) {
-    Bus<T> child = new Bus();
+    Bus<T> child = new Bus<>();
     foreachEventAsync(
             e -> {
               if (f.apply(e.key)) {
@@ -68,10 +69,13 @@ public abstract class EventStream<T> {
   }
 
   public void drainTo(Sink<T> sink) throws IOException {
-    try {
-      foreachEvent(e -> sink.sendUnchecked(e.key, e.value));
-    } catch (Exception e) {
-      throw new IOException(e);
-    }
+    foreachEvent(
+        x -> {
+          try {
+            sink.send(x.key, x.value);
+          } catch (IOException e) {
+            throw new UncheckedIOException(e);
+          }
+        });
   }
 }

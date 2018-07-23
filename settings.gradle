@@ -13,3 +13,4 @@ rootProject.name = 'karass'
 
 include 'karass-core'
 include 'karass-azure'
+include 'karass-couchbase'

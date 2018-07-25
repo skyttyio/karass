@@ -19,12 +19,12 @@ bintray {
   configurations = ['archives']
   pkg {
     repo = 'karass'
-    name = 'karass-azure'
+    name = 'karass-couchbase'
     userOrg = 'skytty'
     licenses = ['Apache-2.0']
     vcsUrl = 'https://github.com/skyttyio/karass'
     version {
-      name = findProperty('releaseVersion')
+      name = project.findProperty('releaseVersion')
       desc = 'early preview'
       released = new Date()
     }

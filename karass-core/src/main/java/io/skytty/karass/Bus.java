@@ -79,9 +79,7 @@ public class Bus<T> extends EventStream<T> {
     while (!reachedOffset(offset) && mightReachOffset(offset)) {
       try {
         synchronized (this) {
-          System.out.println(this.toString() + " waiting for " + Integer.toString(offset) + "...");
           wait();
-          System.out.println(this.toString() + "woken up at " + Integer.toString(count) + "...");
         }
       } catch (InterruptedException e) {
         return;

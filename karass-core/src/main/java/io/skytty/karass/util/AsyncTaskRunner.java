@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 // Partitions and runs tasks on a group of threads.
 public class AsyncTaskRunner {
@@ -19,15 +21,16 @@ public class AsyncTaskRunner {
     void run() throws Exception;
   }
 
-  static final int DEFAULT_NUM_PARTITIONS = 4;
-  static final int DEFAULT_QUEUE_CAPACITY = 16;
-  static final AsyncTask eof = () -> {};
+  public static final int DEFAULT_NUM_PARTITIONS = 4;
+  public static final int DEFAULT_QUEUE_CAPACITY = 16;
+  protected static final AsyncTask eof = () -> {};
 
   private Map<Integer, BlockingQueue<AsyncTask>> queues = new HashMap<>();
   protected int numPartitions = DEFAULT_NUM_PARTITIONS;
   protected int queueCapacity = DEFAULT_QUEUE_CAPACITY;
   private Throwable latestException = null;
   private boolean closed = false;
+  private ReadWriteLock lock = new ReentrantReadWriteLock();
 
   public AsyncTaskRunner(int numPartitions, int queueCapacity) {
     this.numPartitions = numPartitions;
@@ -40,38 +43,51 @@ public class AsyncTaskRunner {
     submit(key.hashCode() % numPartitions, task);
   }
 
-  public synchronized void submit(int partition, AsyncTask task) {
+  public void submit(int partition, AsyncTask task) {
     assertNotClosed();
-    BlockingQueue<AsyncTask> queue = queues.computeIfAbsent(partition, (k) -> makeQueue());
-    while (true) {
-      try {
-        queue.put(task);
-        break;
-      } catch (InterruptedException e) {
-        // swallow
+    BlockingQueue<AsyncTask> queue = getQueue(partition);
+    try {
+      lock.readLock().lock();
+      while (true) {
+        try {
+          queue.put(task);
+          break;
+        } catch (InterruptedException e) {
+          // swallow
+        }
       }
+    } finally {
+      lock.readLock().unlock();
     }
-    queue.notify();
   }
 
   // Block until all queued tasks are run.
   // Re-throws the most recently encountered exception, if any.
-  public synchronized void flush() throws AsyncTaskException, InterruptedException {
+  public void flush() throws AsyncTaskException, InterruptedException {
     assertNotClosed();
-    for (BlockingQueue<AsyncTask> queue : queues.values()) {
-      while (!queue.isEmpty()) {
-        try {
-          queue.wait();
-        } catch (InterruptedException e) {
-          // swallow?
+    try {
+      lock.writeLock().lock();
+      for (BlockingQueue<AsyncTask> queue : queues.values()) {
+        while (!queue.isEmpty()) {
+          try {
+            queue.wait();
+          } catch (InterruptedException e) {
+            // swallow?
+          }
         }
       }
+      if (latestException != null) {
+        Throwable inner = latestException;
+        latestException = null;
+        throw new AsyncTaskException(inner);
+      }
+    } finally {
+      lock.writeLock().unlock();
     }
-    if (latestException != null) {
-      Throwable inner = latestException;
-      latestException = null;
-      throw new AsyncTaskException(inner);
-    }
+  }
+
+  private synchronized BlockingQueue<AsyncTask> getQueue(int partition) {
+    return queues.computeIfAbsent(partition, (k) -> makeQueue());
   }
 
   private BlockingQueue<AsyncTask> makeQueue() {
@@ -91,6 +107,7 @@ public class AsyncTaskRunner {
             }
             try {
               task.run();
+              queue.notifyAll(); // wakeup wait() in flush()
             } catch (Exception e) {
               latestException = e;
             }

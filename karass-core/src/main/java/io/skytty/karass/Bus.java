@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /** Log-compacted event bus. */
-public class Bus<T> extends EventStream<T> {
+public class Bus<T> extends EventStream<T> implements Store<T> {
 
   int count = 0; // might need atomic int
   int closedAt = -1;
@@ -37,6 +37,7 @@ public class Bus<T> extends EventStream<T> {
     }
   }
 
+  @Override
   public synchronized T get(String key) {
     Integer i = offsets.get(key);
     if (i == null) {

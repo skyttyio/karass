@@ -69,7 +69,7 @@ public class Bus<T> extends EventStream<T> implements Store<T> {
   }
 
   protected boolean mightReachOffset(int offset) {
-    return closedAt == -1 || closedAt > offset;
+    return closedAt == -1 || closedAt > offset + 1;
   }
 
   protected boolean reachedOffset(int offset) {

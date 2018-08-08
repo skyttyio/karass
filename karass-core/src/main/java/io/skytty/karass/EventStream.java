@@ -23,13 +23,13 @@ public abstract class EventStream<T> {
 
   protected abstract void foreachEvent(Consumer<Event<T>> f);
 
-  public <U> Bus<U> fmap(Function<T, U> f) {
+  public <U> Bus<U> fmap(Function<? super T, U> f) {
     Bus<U> child = new Bus<>();
     foreachEventAsync(e -> child.emit(e.key, f.apply(e.value))).thenRun(() -> child.close());
     return child;
   }
 
-  public Bus<T> filter(Function<T, Boolean> f) {
+  public Bus<T> filter(Function<? super T, Boolean> f) {
     Bus<T> child = new Bus<>();
     foreachEventAsync(
             e -> {
@@ -41,7 +41,7 @@ public abstract class EventStream<T> {
     return child;
   }
 
-  public void foreach(Consumer<T> f) {
+  public void foreach(Consumer<? super T> f) {
     foreachEvent(e -> f.accept(e.value));
   }
 
@@ -49,7 +49,7 @@ public abstract class EventStream<T> {
     return CompletableFuture.runAsync(() -> foreachEvent(f));
   }
 
-  public CompletableFuture<Void> foreachAsync(Consumer<T> f) {
+  public CompletableFuture<Void> foreachAsync(Consumer<? super T> f) {
     return CompletableFuture.runAsync(() -> foreach(f));
   }
 
@@ -71,7 +71,7 @@ public abstract class EventStream<T> {
     return child;
   }
 
-  public void drainTo(Sink<T> sink) throws IOException {
+  public void drainTo(Sink<? super T> sink) throws IOException {
     foreachEvent(
         x -> {
           try {
@@ -95,7 +95,7 @@ public abstract class EventStream<T> {
     return child;
   }
 
-  public <U> U reduce(U u, BiFunction<U, T, U> f) {
+  public <U> U reduce(U u, BiFunction<U, ? super T, U> f) {
     Aggregator<U> agg = new Aggregator<>(u);
     foreachEvent(e -> agg.apply(x -> f.apply(x, e.value)));
     return agg.get();

@@ -91,4 +91,16 @@ public class BusSpec {
     int sum = c.reduce(0, (agg, x) -> agg + x);
     assertThat(sum, is(135));
   }
+
+  private static <T> T ident(T t) {
+    return t;
+  }
+
+  @Test
+  public void variance() {
+    Bus<Integer> a = new Bus<>();
+    a.close();
+    Bus<Number> b = a.fmap(BusSpec::ident);
+    b.foreach(System.out::println);
+  }
 }

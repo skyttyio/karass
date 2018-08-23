@@ -62,7 +62,7 @@ public class Bus<T> extends EventStream<T> {
   }
 
   // apply f to all events since given offset. Will block until new events arrive.
-  protected int process(Consumer<Event<T>> f, int since, int maxEvents) {
+  public int process(Consumer<Event<T>> f, int since, int maxEvents) {
     waitForOffset(since);
     int i = since;
     int n = 0;
@@ -76,11 +76,11 @@ public class Bus<T> extends EventStream<T> {
     return i;
   }
 
-  protected int process(Consumer<Event<T>> f, int since) {
+  public int process(Consumer<Event<T>> f, int since) {
     return process(f, since, Integer.MAX_VALUE);
   }
 
-  protected int process(Consumer<Event<T>> f) {
+  public int process(Consumer<Event<T>> f) {
     return process(f, 0, Integer.MAX_VALUE);
   }
 

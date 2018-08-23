@@ -11,7 +11,7 @@ import java.util.function.Function;
 
 public abstract class EventStream<T> {
 
-  protected static class Event<T> {
+  public static class Event<T> {
     public String key;
     public T value;
 

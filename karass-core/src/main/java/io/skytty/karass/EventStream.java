@@ -71,7 +71,7 @@ public abstract class EventStream<T> {
     return child;
   }
 
-  public void drainTo(Sink<T> sink) throws IOException {
+  public void drain(Sink<T> sink) throws IOException {
     foreachEvent(
         x -> {
           try {
@@ -82,7 +82,7 @@ public abstract class EventStream<T> {
         });
   }
 
-  public <U> Bus<Pair<T, U>> joinWith(Bus<U> bus) {
+  public <U> Bus<Pair<T, U>> join(Bus<U> bus) {
     Bus<Pair<T, U>> child = new Bus<>();
     foreachEventAsync(
             e -> {

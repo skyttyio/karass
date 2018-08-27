@@ -87,7 +87,7 @@ public class BusSpec {
     }
     a.close();
     b.close();
-    Bus<Integer> c = a.joinWith(b).fmap(x -> x.left + x.right);
+    Bus<Integer> c = a.join(b).fmap(x -> x.left + x.right);
     int sum = c.reduce(0, (agg, x) -> agg + x);
     assertThat(sum, is(135));
   }

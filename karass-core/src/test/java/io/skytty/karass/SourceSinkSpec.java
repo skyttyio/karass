@@ -31,7 +31,7 @@ public class SourceSinkSpec {
     Source<String> source = new Sources.IOSource(inputStream);
     ByteArrayOutputStream buf = new ByteArrayOutputStream();
     Sink<String> sink = new Sinks.IOSink(buf);
-    source.fmap(x -> x.trim()).drainTo(sink);
+    source.fmap(x -> x.trim()).drain(sink);
     assertThat(buf.toString("UTF-8"), is(expected));
   }
 }

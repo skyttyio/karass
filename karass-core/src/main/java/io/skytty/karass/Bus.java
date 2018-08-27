@@ -9,6 +9,7 @@ public class Bus<T> extends EventStream<T> implements Store<T> {
 
   int count = 0; // might need atomic int
   int closedAt = -1;
+  int oldestOffset = 0;
   Map<Integer, Event<T>> events = new HashMap<>();
   Map<String, Integer> offsets = new HashMap<>();
 
@@ -23,6 +24,9 @@ public class Bus<T> extends EventStream<T> implements Store<T> {
     Integer prev = offsets.get(event.key);
     if (prev != null) {
       events.remove(prev);
+      if (prev.intValue() == oldestOffset) {
+        oldestOffset++;
+      }
     }
     offsets.put(event.key, offset);
     notifyAll();
@@ -34,6 +38,9 @@ public class Bus<T> extends EventStream<T> implements Store<T> {
     if (existing != null && offsets.get(existing.key) == offset) {
       events.remove(offset);
       offsets.remove(existing.key);
+    }
+    if (offset == oldestOffset) {
+      oldestOffset++;
     }
   }
 
@@ -56,16 +63,26 @@ public class Bus<T> extends EventStream<T> implements Store<T> {
   }
 
   // apply f to all events since given offset. Will block until new events arrive.
-  protected int process(Consumer<Event<T>> f, int since) {
+  public int process(Consumer<Event<T>> f, int since, int maxEvents) {
     waitForOffset(since);
     int i = since;
-    for (; i < count; i++) {
+    int n = 0;
+    for (; i < count && n < maxEvents; i++) {
       Event<T> e = events.get(i);
       if (e != null) {
         f.accept(e);
+        n++;
       }
     }
     return i;
+  }
+
+  public int process(Consumer<Event<T>> f, int since) {
+    return process(f, since, Integer.MAX_VALUE);
+  }
+
+  public int process(Consumer<Event<T>> f) {
+    return process(f, 0, Integer.MAX_VALUE);
   }
 
   protected boolean mightReachOffset(int offset) {

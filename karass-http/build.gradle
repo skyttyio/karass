@@ -1,0 +1,33 @@
+
+plugins {
+  id 'com.jfrog.bintray' version '1.8.4'
+}
+
+apply plugin: 'java'
+apply plugin: 'maven'
+
+dependencies {
+    compile project(':karass-core')
+    compile 'org.slf4j:slf4j-api:1.7.13'
+    compile 'javax.servlet:javax.servlet-api:4.0.1'
+    testCompile 'junit:junit:4.12'
+}
+
+bintray {
+  user = System.getenv('BINTRAY_USER')
+  key = System.getenv('BINTRAY_ACCESS_KEY')
+  configurations = ['archives']
+  pkg {
+    repo = 'karass'
+    name = 'karass-http'
+    userOrg = 'skytty'
+    licenses = ['Apache-2.0']
+    vcsUrl = 'https://github.com/skyttyio/karass'
+    version {
+      name = project.findProperty('releaseVersion')
+      desc = 'early preview'
+      released = new Date()
+    }
+  }
+}
+

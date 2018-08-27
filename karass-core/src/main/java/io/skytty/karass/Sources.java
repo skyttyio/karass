@@ -6,6 +6,8 @@ import java.util.function.Consumer;
 
 public class Sources {
 
+  public static final Stdin STDIN = new Stdin();
+
   public static class Stdin extends IOSource {
 
     public Stdin() {

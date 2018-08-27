@@ -5,7 +5,7 @@ import java.io.PrintStream;
 
 public class Sinks {
 
-  public static Stdout STDOUT = new Stdout();
+  public static final Stdout STDOUT = new Stdout();
 
   public static class Stdout extends IOSink {
 
